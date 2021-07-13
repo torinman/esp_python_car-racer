@@ -12,7 +12,6 @@ data = ""
 player_angle = 180
 datatup= (0, 0)
 BG_COL = (30, 110, 50)
-L_COL = (70, 50, 10)
 
 
 def get_angle(tup):
