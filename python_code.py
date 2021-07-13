@@ -1,7 +1,7 @@
 import pygame
 import math
 import urllib.request
-url = "http://192.168.0.40/"  # esp prints ip address when started
+url = "http://192.168.0.40/"  # esp prints IP address when started
 angle = 0
 x = 640
 y = 357
