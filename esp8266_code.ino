@@ -1,6 +1,6 @@
 #include <Wire.h>
 #include <ESP8266WiFi.h>
-#include "ESP_MICRO.h"
+#include "esp8266_header.h"
 
 //MPU9255 Register Map
 #define    _DEVICE_Addr  0x68
