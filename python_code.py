@@ -78,4 +78,3 @@ while not done:
 	pygame.display.flip()
 	speed *= 0.7
 pygame.quit()
-# Ninja666-rgb was 'ere...
