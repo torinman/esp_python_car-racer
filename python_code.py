@@ -79,16 +79,3 @@ while not done:
 	speed *= 0.7
 pygame.quit()
 #   Nothing ever happened...
-
-
-
-
-
-
-
-
-
-
-
-
-# BOO!
