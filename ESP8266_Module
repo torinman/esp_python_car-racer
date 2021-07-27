@@ -213,8 +213,18 @@ void loop() {
   Serial.print(", ");
   Serial.println(degree*100);
   delay(20);
+  if(degree < 5){
+    degree = 0;
+  }
   if(abs(degree) < 5){
     degree = 0;
+  }
+  if(abs(degree) > 90){
+    if(degree > 90){
+      degree = 90;
+    }else{
+     degree = 90; 
+    }
   }
   if(abs(speedo) < 5){
     speedo = 0;
