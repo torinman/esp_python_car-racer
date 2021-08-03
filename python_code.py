@@ -1,7 +1,8 @@
 import pygame
 import math
 import urllib.request
-import random
+#import random
+import threading
 url = "http://192.168.20.108/"  # "http://192.168.20.131/", "http://192.168.20.130/"
 angle = 0
 x_speed = 0
@@ -40,12 +41,15 @@ def get_angle(tup):
 	return ca
 
 def get_data():
-	global data
+	global datatup, done
+	while not done
+		n = urllib.request.urlopen(url).read() # get the raw html data in bytes (sends request and warn our esp8266)
+		n = n.decode("utf-8") # convert raw html bytes format to string
 
-	n = urllib.request.urlopen(url).read() # get the raw html data in bytes (sends request and warn our esp8266)
-	n = n.decode("utf-8") # convert raw html bytes format to string
-	
-	data = n
+		data = n
+		datalist = data.split(", ")
+		datatup = tuple(float(i) for i in datalist)
+		datatup = (datatup[0] / 1.25, datatup[1])
 	# data = n.split() 			#<optional> split datas we got. (if you programmed it to send more than one value) It splits them into seperate list elements.
 	# data = list(map(int, data)) #<optional> turn datas to integers, now all list elements are integers.
 
@@ -64,22 +68,20 @@ x = pygame.display.get_window_size()[0]//2
 y = pygame.display.get_window_size()[1]//2
 wheel_poses = [(x+(math.sin(math.radians(player_angle-90))*20), y+(math.cos(math.radians(player_angle-90))*20)), (x+(math.sin(math.radians(player_angle+90))*20), y+(math.cos(math.radians(player_angle+90))*20)), (x+(math.sin(math.radians(player_angle-10))*90), y+(math.cos(math.radians(player_angle-10))*90)), (x+(math.sin(math.radians(player_angle+10))*90), y+(math.cos(math.radians(player_angle+10))*90))]
 prev_wheel_poses = [listn[:] for listn in wheel_poses]
+threading.Thread(target=get_data, daemon=True).start()
 while not done:
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			done = True
 			
 	screen.fill((0, 0, 0))
-	get_data()
-	datalist = data.split(", ")
-	datatup = tuple(float(i) for i in datalist)
 	#datatup = (10, 100)
 	clock.tick(60)
 	speed += (datatup[1]/18)
 	x_speed = (math.sin(math.radians(player_angle))*speed)
 	y_speed = (math.cos(math.radians(player_angle))*speed)
-	angle = get_angle((datatup[0]/1.5, speed))
-	datatup = (datatup[0] / 1.5, datatup[1])
+	datatup = (datatup[0] / 1.25, datatup[1])
+	angle = get_angle((datatup[0], speed))
 #	screen.blit(text, (0, 0))
 	if not(x<0 or 
 	       x>pygame.display.get_window_size()[0] or 
@@ -131,4 +133,3 @@ while not done:
 		player_angle += 360
 	prev_wheel_poses = [listn[:] for listn in wheel_poses]
 pygame.quit()
-#   Nothing ever happened...
