@@ -1,26 +1,113 @@
+from __future__ import division
 import pygame
 import math
 import urllib.request
-#import random
+import colorsys
 import threading
-url = "http://192.168.20.108/"  # "http://192.168.20.131/", "http://192.168.20.130/"
-angle = 0
-x_speed = 0
-y_speed = 0
-speed = 0
+def calculateGradient(p1, p2):
+   if (p1[0] != p2[0]):
+       m = (p1[1] - p2[1]) / (p1[0] - p2[0])
+       return m
+   else:
+       return None
+def calculateYAxisIntersect(p, m):
+   return  p[1] - (m * p[0])
+def getIntersectPoint(p1, p2, p3, p4):
+   m1 = calculateGradient(p1, p2)
+   m2 = calculateGradient(p3, p4)
+   if (m1 != m2):
+       if (m1 is not None and m2 is not None):
+           b1 = calculateYAxisIntersect(p1, m1)
+           b2 = calculateYAxisIntersect(p3, m2)   
+           x = (b2 - b1) / (m1 - m2)       
+           y = (m1 * x) + b1           
+       else:
+           if (m1 is None):
+               b2 = calculateYAxisIntersect(p3, m2)   
+               x = p1[0]
+               y = (m2 * x) + b2
+           elif (m2 is None):
+               b1 = calculateYAxisIntersect(p1, m1)
+               x = p3[0]
+               y = (m1 * x) + b1           
+           else:
+               assert False
+       return ((x,y),)
+   else:
+       b1, b2 = None, None
+       if m1 is not None:
+           b1 = calculateYAxisIntersect(p1, m1)
+       if m2 is not None:   
+           b2 = calculateYAxisIntersect(p3, m2)
+       if b1 == b2:
+           return p1,p2,p3,p4
+       else:
+           return None
+def calculateIntersectPoint(p1, p2, p3, p4):
+    p = getIntersectPoint(p1, p2, p3, p4)
+    if p is not None:               
+        width = p2[0] - p1[0]
+        height = p2[1] - p1[1]       
+        r1 = pygame.Rect(p1, (width , height))
+        r1.normalize()
+        width = p4[0] - p3[0]
+        height = p4[1] - p3[1]
+        r2 = pygame.Rect(p3, (width, height))
+        r2.normalize()  
+        tolerance = 1
+        if r1.width < tolerance:
+            r1.width = tolerance   
+        if r1.height < tolerance:
+            r1.height = tolerance
+        if r2.width < tolerance:
+            r2.width = tolerance
+        if r2.height < tolerance:
+            r2.height = tolerance
+        for point in p:                 
+            try:    
+                res1 = r1.collidepoint(point)
+                res2 = r2.collidepoint(point)
+                if res1 and res2:
+                    point = [int(pp) for pp in point]                                
+                    return point
+            except:
+                str = "point was invalid  ", point                
+                print(str)
+        return None            
+    else:
+        return None
+
+urls = ["http://192.168.20.108/", "http://192.168.20.104/", "http://192.168.20.114/"]  # any set urls you want
+cars = len(urls)
+angles = []
+x_speeds = []
+y_speeds = []
+speeds = []
 data = ""
+xs = []
+ys = []
 curve_track_opacity = True
-player_angle = 180
-datatup= (0, 0)
+player_angles = []
+datatups = []
 BG_COL = (30, 110, 35, 0)
 L_COL = (70, 50, 10, 0)
-track_dist = 10  #  0 for no track, -1 for infinite track, 1 or more for track that fades  the larger the number the less it fades
+track_dist = 10
 s_size = (0, 0)
 prev_s_size = (0, 0)
 TRACK_COLOUR = (60, 42, 5)
-prev_wheel_poses = [(0, 0), (0, 0), (0, 0), (0, 0)]
-wheel_poses = [(0, 0), (0, 0), (0, 0), (0, 0)]
-
+prev_wheel_poseses = []
+wheel_poseses = []
+for i in range(cars):
+	xs.append(0)
+	ys.append(0)
+	x_speeds.append(0)
+	speeds.append(0)
+	y_speeds.append(0)
+	angles.append(0)
+	player_angles.append(180)
+	datatups.append((0, 0))
+	prev_wheel_poseses.append([(0, 0), (0, 0), (0, 0), (0, 0)])
+	wheel_poseses.append([(0, 0), (0, 0), (0, 0), (0, 0)])
 def draw_bg(op):
 	surf = pygame.Surface(pygame.display.get_window_size())
 	surf = surf.convert_alpha()
@@ -41,15 +128,19 @@ def get_angle(tup):
 	return ca
 
 def get_data():
-	global datatup, done
-	while not done
-		n = urllib.request.urlopen(url).read() # get the raw html data in bytes (sends request and warn our esp8266)
-		n = n.decode("utf-8") # convert raw html bytes format to string
-
-		data = n
-		datalist = data.split(", ")
-		datatup = tuple(float(i) for i in datalist)
-		datatup = (datatup[0] / 1.25, datatup[1])
+	global datatups, done, cars, urls
+	while not done:
+		for numb in range(cars):
+			try:
+				n = urllib.request.urlopen(urls[numb], timeout = 1).read() # get the raw html data in bytes (sends request and warn our esp8266)
+				n = n.decode("utf-8") # convert raw html bytes format to string
+				
+				data = n
+				datalist = data.split(", ")
+				datatups[numb] = tuple(float(i) for i in datalist)
+				datatups[numb] = (datatups[numb][0] / 1.25, datatups[numb][1])
+			except:
+				pass
 	# data = n.split() 			#<optional> split datas we got. (if you programmed it to send more than one value) It splits them into seperate list elements.
 	# data = list(map(int, data)) #<optional> turn datas to integers, now all list elements are integers.
 
@@ -64,15 +155,11 @@ if track_dist>=0:
 	backgroundoverlay = draw_bg(255//(track_dist+1))
 else:
 	backgroundoverlay = draw_bg(0)
-x = pygame.display.get_window_size()[0]//2
-y = pygame.display.get_window_size()[1]//2
-wheel_poses = [(x+(math.sin(math.radians(player_angle-90))*20), y+(math.cos(math.radians(player_angle-90))*20)), (x+(math.sin(math.radians(player_angle+90))*20), y+(math.cos(math.radians(player_angle+90))*20)), (x+(math.sin(math.radians(player_angle-10))*90), y+(math.cos(math.radians(player_angle-10))*90)), (x+(math.sin(math.radians(player_angle+10))*90), y+(math.cos(math.radians(player_angle+10))*90))]
-prev_wheel_poses = [listn[:] for listn in wheel_poses]
-steernessstr = input("Enter your gLiTcH number, defaults to 1.35: ")
-if steernessstr == '' or steernessstr == '0':
-	steerness = 1.35
-else:
-	steerness = float(steernessstr)
+for i in range(cars):
+	xs[i] = pygame.display.get_window_size()[0]//2
+	ys[i] = pygame.display.get_window_size()[1]//2
+	wheel_poseses[i] = [(xs[i]+(math.sin(math.radians(player_angles[i]-90))*20), ys[i]+(math.cos(math.radians(player_angles[i]-90))*20)), (xs[i]+(math.sin(math.radians(player_angles[i]+90))*20), ys[i]+(math.cos(math.radians(player_angles[i]+90))*20)), (xs[i]+(math.sin(math.radians(player_angles[i]-10))*90), ys[i]+(math.cos(math.radians(player_angles[i]-10))*90)), (xs[i]+(math.sin(math.radians(player_angles[i]+10))*90), ys[i]+(math.cos(math.radians(player_angles[i]+10))*90))]
+	prev_wheel_poseses[i] = [listn[:] for listn in wheel_poseses[i]]
 threading.Thread(target=get_data, daemon=True).start()
 while not done:
 	for event in pygame.event.get():
@@ -81,32 +168,32 @@ while not done:
 			
 	screen.fill((0, 0, 0))
 	#datatup = (10, 100)
-	clock.tick(60)
-	speed += (datatup[1]/18)
-	x_speed = (math.sin(math.radians(player_angle))*speed)
-	y_speed = (math.cos(math.radians(player_angle))*speed)
-	datatup = (datatup[0] / steerness, datatup[1])
-	angle = get_angle((datatup[0], speed))
+	clock.tick(6000)
+	for i in range(cars):
+		speeds[i] += (datatups[i][1]/50)
+		x_speeds[i] = (math.sin(math.radians(player_angles[i]))*speeds[i])
+		y_speeds[i] = (math.cos(math.radians(player_angles[i]))*speeds[i])
+		angles[i] = get_angle((datatups[i][0], speeds[i]))
 #	screen.blit(text, (0, 0))
-	if not(x<0 or 
-	       x>pygame.display.get_window_size()[0] or 
-		   y<0 or 
-	       y>pygame.display.get_window_size()[1] or 
-		   x+(math.sin(math.radians(player_angle+angle))*100)<0 or 
-	       x+(math.sin(math.radians(player_angle+angle))*100)>pygame.display.get_window_size()[0] or 
-		   y+(math.cos(math.radians(player_angle+angle))*100)<0 or 
-	       y+(math.cos(math.radians(player_angle+angle))*100)>pygame.display.get_window_size()[1]):
-		player_angle += angle
-	if not(x+x_speed<0 or 
-	       x+x_speed>pygame.display.get_window_size()[0] or 
-		   y+y_speed<0 or 
-	       y+y_speed>pygame.display.get_window_size()[1] or 
-		   x+x_speed+(math.sin(math.radians(player_angle))*100)<0 or 
-	       x+x_speed+(math.sin(math.radians(player_angle))*100)>pygame.display.get_window_size()[0] or 
-		   y+y_speed+(math.cos(math.radians(player_angle))*100)<0 or 
-	       y+y_speed+(math.cos(math.radians(player_angle))*100)>pygame.display.get_window_size()[1]):
-		x += x_speed
-		y += y_speed
+		if not(xs[i]<0 or 
+			xs[i]>pygame.display.get_window_size()[0] or 
+			ys[i]<0 or 
+			ys[i]>pygame.display.get_window_size()[1] or 
+			xs[i]+(math.sin(math.radians(player_angles[i]+angles[i]))*100)<0 or 
+			xs[i]+(math.sin(math.radians(player_angles[i]+angles[i]))*100)>pygame.display.get_window_size()[0] or 
+			ys[i]+(math.cos(math.radians(player_angles[i]+angles[i]))*100)<0 or 
+			ys[i]+(math.cos(math.radians(player_angles[i]+angles[i]))*100)>pygame.display.get_window_size()[1]):
+			player_angles[i] += angles[i]
+		if not(xs[i]+x_speeds[i]<0 or 
+			xs[i]+x_speeds[i]>pygame.display.get_window_size()[0] or 
+			ys[i]+y_speeds[i]<0 or 
+			ys[i]+y_speeds[i]>pygame.display.get_window_size()[1] or 
+			xs[i]+x_speeds[i]+(math.sin(math.radians(player_angles[i]))*100)<0 or 
+			xs[i]+x_speeds[i]+(math.sin(math.radians(player_angles[i]))*100)>pygame.display.get_window_size()[0] or 
+			ys[i]+y_speeds[i]+(math.cos(math.radians(player_angles[i]))*100)<0 or 
+			ys[i]+y_speeds[i]+(math.cos(math.radians(player_angles[i]))*100)>pygame.display.get_window_size()[1]):
+			xs[i] += x_speeds[i]
+			ys[i] += y_speeds[i]
 	s_size = pygame.display.get_window_size()
 	if s_size != prev_s_size:
 		backgroundandtrack = draw_bg(255)
@@ -117,24 +204,25 @@ while not done:
 	prev_s_size = s_size
 	backgroundandtrack.blit(backgroundoverlay, (0, 0))
 	screen.blit(backgroundandtrack, (0, 0))
-	wheel_poses = [(x+(math.sin(math.radians(player_angle-90))*20), y+(math.cos(math.radians(player_angle-90))*20)), (x+(math.sin(math.radians(player_angle+90))*20), y+(math.cos(math.radians(player_angle+90))*20)), (x+(math.sin(math.radians(player_angle-10))*90), y+(math.cos(math.radians(player_angle-10))*90)), (x+(math.sin(math.radians(player_angle+10))*90), y+(math.cos(math.radians(player_angle+10))*90))]
-	pygame.draw.line(screen, (255, 255, 255), (x, y), (x+(math.sin(math.radians(player_angle))*100), y+(math.cos(math.radians(player_angle))*100)), width = 3)# central line
-	pygame.draw.line(screen, (255, 255, 255), wheel_poses[0], wheel_poses[1], width = 3)#back wheel axel
-	pygame.draw.line(screen, (255, 255, 255), wheel_poses[2], wheel_poses[3], width = 3)#front wheel axel
-	pygame.draw.line(screen, (255, 255, 255), (wheel_poses[2][0]+(math.sin(math.radians(player_angle+(datatup[0]*-1)))*-10), wheel_poses[2][1]+(math.cos(math.radians(player_angle+(datatup[0]*-1)))*-10)), (wheel_poses[2][0]+(math.sin(math.radians(player_angle+(datatup[0]*-1)))*10), wheel_poses[2][1]+(math.cos(math.radians(player_angle+(datatup[0]*-1)))*10)), width = 3)
-	pygame.draw.line(screen, (255, 255, 255), (wheel_poses[3][0]+(math.sin(math.radians(player_angle+(datatup[0]*-1)))*-10), wheel_poses[3][1]+(math.cos(math.radians(player_angle+(datatup[0]*-1)))*-10)), (wheel_poses[3][0]+(math.sin(math.radians(player_angle+(datatup[0]*-1)))*10), wheel_poses[3][1]+(math.cos(math.radians(player_angle+(datatup[0]*-1)))*10)), width = 3)
-	pygame.draw.line(screen, (255, 255, 255), (wheel_poses[0][0]+(math.sin(math.radians(player_angle))*-10), wheel_poses[0][1]+(math.cos(math.radians(player_angle))*-10)), (wheel_poses[0][0]+(math.sin(math.radians(player_angle))*10), wheel_poses[0][1]+(math.cos(math.radians(player_angle))*10)), width = 3)
-	pygame.draw.line(screen, (255, 255, 255), (wheel_poses[1][0]+(math.sin(math.radians(player_angle))*-10), wheel_poses[1][1]+(math.cos(math.radians(player_angle))*-10)), (wheel_poses[1][0]+(math.sin(math.radians(player_angle))*10), wheel_poses[1][1]+(math.cos(math.radians(player_angle))*10)), width = 3)
-	pygame.draw.line(backgroundandtrack, TRACK_COLOUR, wheel_poses[0], prev_wheel_poses[0], width = 3)
-	pygame.draw.line(backgroundandtrack, TRACK_COLOUR, wheel_poses[1], prev_wheel_poses[1], width = 3)
-	pygame.draw.line(backgroundandtrack, TRACK_COLOUR, wheel_poses[2], prev_wheel_poses[2], width = 3)
-	pygame.draw.line(backgroundandtrack, TRACK_COLOUR, wheel_poses[3], prev_wheel_poses[3], width = 3)
-	pygame.draw.polygon(screen, (255, 0, 0), [(x+(math.sin(math.radians(player_angle-90))*15), y+(math.cos(math.radians(player_angle-90))*15)), (x+(math.sin(math.radians(player_angle+90))*15), y+(math.cos(math.radians(player_angle+90))*15)), (x+(math.sin(math.radians(player_angle))*100), y+(math.cos(math.radians(player_angle))*100))])#bonnet
+	for i in range(cars):
+		wheel_poseses[i] = [(xs[i]+(math.sin(math.radians(player_angles[i]-90))*20), ys[i]+(math.cos(math.radians(player_angles[i]-90))*20)), (xs[i]+(math.sin(math.radians(player_angles[i]+90))*20), ys[i]+(math.cos(math.radians(player_angles[i]+90))*20)), (xs[i]+(math.sin(math.radians(player_angles[i]-10))*90), ys[i]+(math.cos(math.radians(player_angles[i]-10))*90)), (xs[i]+(math.sin(math.radians(player_angles[i]+10))*90), ys[i]+(math.cos(math.radians(player_angles[i]+10))*90))]
+		pygame.draw.line(screen, (255, 255, 255), (xs[i], ys[i]), (xs[i]+(math.sin(math.radians(player_angles[i]))*100), ys[i]+(math.cos(math.radians(player_angles[i]))*100)), width = 3)# central line
+		pygame.draw.line(screen, (255, 255, 255), wheel_poseses[i][0], wheel_poseses[i][1], width = 3)#back wheel axel
+		pygame.draw.line(screen, (255, 255, 255), wheel_poseses[i][2], wheel_poseses[i][3], width = 3)#front wheel axel
+		pygame.draw.line(screen, (255, 255, 255), (wheel_poseses[i][2][0]+(math.sin(math.radians(player_angles[i]+(datatups[i][0]*-1)))*-10), wheel_poseses[i][2][1]+(math.cos(math.radians(player_angles[i]+(datatups[i][0]*-1)))*-10)), (wheel_poseses[i][2][0]+(math.sin(math.radians(player_angles[i]+(datatups[i][0]*-1)))*10), wheel_poseses[i][2][1]+(math.cos(math.radians(player_angles[i]+(datatups[i][0]*-1)))*10)), width = 3)
+		pygame.draw.line(screen, (255, 255, 255), (wheel_poseses[i][3][0]+(math.sin(math.radians(player_angles[i]+(datatups[i][0]*-1)))*-10), wheel_poseses[i][3][1]+(math.cos(math.radians(player_angles[i]+(datatups[i][0]*-1)))*-10)), (wheel_poseses[i][3][0]+(math.sin(math.radians(player_angles[i]+(datatups[i][0]*-1)))*10), wheel_poseses[i][3][1]+(math.cos(math.radians(player_angles[i]+(datatups[i][0]*-1)))*10)), width = 3)
+		pygame.draw.line(screen, (255, 255, 255), (wheel_poseses[i][0][0]+(math.sin(math.radians(player_angles[i]))*-10), wheel_poseses[i][0][1]+(math.cos(math.radians(player_angles[i]))*-10)), (wheel_poseses[i][0][0]+(math.sin(math.radians(player_angles[i]))*10), wheel_poseses[i][0][1]+(math.cos(math.radians(player_angles[i]))*10)), width = 3)
+		pygame.draw.line(screen, (255, 255, 255), (wheel_poseses[i][1][0]+(math.sin(math.radians(player_angles[i]))*-10), wheel_poseses[i][1][1]+(math.cos(math.radians(player_angles[i]))*-10)), (wheel_poseses[i][1][0]+(math.sin(math.radians(player_angles[i]))*10), wheel_poseses[i][1][1]+(math.cos(math.radians(player_angles[i]))*10)), width = 3)
+		pygame.draw.line(backgroundandtrack, TRACK_COLOUR, wheel_poseses[i][0], prev_wheel_poseses[i][0], width = 3)
+		pygame.draw.line(backgroundandtrack, TRACK_COLOUR, wheel_poseses[i][1], prev_wheel_poseses[i][1], width = 3)
+		pygame.draw.line(backgroundandtrack, TRACK_COLOUR, wheel_poseses[i][2], prev_wheel_poseses[i][2], width = 3)
+		pygame.draw.line(backgroundandtrack, TRACK_COLOUR, wheel_poseses[i][3], prev_wheel_poseses[i][3], width = 3)
+		pygame.draw.polygon(screen, tuple(round(i*255) for i in colorsys.hsv_to_rgb(1-(1/cars)*i, 1, 1)), [(xs[i]+(math.sin(math.radians(player_angles[i]-90))*15), ys[i]+(math.cos(math.radians(player_angles[i]-90))*15)), (xs[i]+(math.sin(math.radians(player_angles[i]+90))*15), ys[i]+(math.cos(math.radians(player_angles[i]+90))*15)), (xs[i]+(math.sin(math.radians(player_angles[i]))*100), ys[i]+(math.cos(math.radians(player_angles[i]))*100))])#bonnet
+		speeds[i] *= 0.7
+		if player_angles[i] >= 360:
+			player_angles[i] -= 360
+		if player_angles[i] <= 0:
+			player_angles[i] += 360
+		prev_wheel_poseses[i] = [listn[:] for listn in wheel_poseses[i]]
 	pygame.display.flip()
-	speed *= 0.7
-	if player_angle >= 360:
-		player_angle -= 360
-	if player_angle <= 0:
-		player_angle += 360
-	prev_wheel_poses = [listn[:] for listn in wheel_poses]
 pygame.quit()
