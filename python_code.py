@@ -68,9 +68,11 @@ x = pygame.display.get_window_size()[0]//2
 y = pygame.display.get_window_size()[1]//2
 wheel_poses = [(x+(math.sin(math.radians(player_angle-90))*20), y+(math.cos(math.radians(player_angle-90))*20)), (x+(math.sin(math.radians(player_angle+90))*20), y+(math.cos(math.radians(player_angle+90))*20)), (x+(math.sin(math.radians(player_angle-10))*90), y+(math.cos(math.radians(player_angle-10))*90)), (x+(math.sin(math.radians(player_angle+10))*90), y+(math.cos(math.radians(player_angle+10))*90))]
 prev_wheel_poses = [listn[:] for listn in wheel_poses]
-steerness = float(input("Enter your gLiTcH number, defaults to 1.25: "))
-if steerness == None or steerness == 0:
-	steerness = 1.25
+steernessstr = input("Enter your gLiTcH number, defaults to 1.35: ")
+if steernessstr == '' or steernessstr == '0':
+	steerness = 1.35
+else:
+	steerness = float(steernessstr)
 threading.Thread(target=get_data, daemon=True).start()
 while not done:
 	for event in pygame.event.get():
