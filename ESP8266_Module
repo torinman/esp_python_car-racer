@@ -220,7 +220,14 @@ void loop() {
     if(degree > 90){
       degree = 90;
     }else{
-     degree = -90; 
+      degree = -90; 
+    }
+  }
+  if(abs(speedo) > 90){
+    if(speedo > 90){
+      speedo = 90;
+    }else{
+      speedo = -90; 
     }
   }
   if(abs(speedo) < 5){
