@@ -10,6 +10,6 @@ gnd to gnd,
 d1 to scl, 
 d2 to sda
 
-
+python_code.py and car_crash_sound.ogg need to be in the same directory, same with all esp files
 
 thanks to KebabLord for esp2python connection code
