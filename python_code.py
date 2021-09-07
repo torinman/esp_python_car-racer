@@ -156,8 +156,8 @@ if track_dist>=0:
 else:
 	backgroundoverlay = draw_bg(0)
 for i in range(cars):
-	xs[i] = pygame.display.get_window_size()[0]//2
-	ys[i] = pygame.display.get_window_size()[1]//2
+	xs[i] = ((i+0.75)*(size_of_car/100)*70)
+	ys[i] = pygame.display.get_window_size()[1]-(size_of_car*0.35) 
 	wheel_poseses[i] = [(xs[i]+(math.sin(math.radians(player_angles[i]-90))*20), ys[i]+(math.cos(math.radians(player_angles[i]-90))*20)), (xs[i]+(math.sin(math.radians(player_angles[i]+90))*20), ys[i]+(math.cos(math.radians(player_angles[i]+90))*20)), (xs[i]+(math.sin(math.radians(player_angles[i]-10))*90), ys[i]+(math.cos(math.radians(player_angles[i]-10))*90)), (xs[i]+(math.sin(math.radians(player_angles[i]+10))*90), ys[i]+(math.cos(math.radians(player_angles[i]+10))*90))]
 	prev_wheel_poseses[i] = [listn[:] for listn in wheel_poseses[i]]
 threading.Thread(target=get_data, daemon=True).start()
