@@ -17,7 +17,7 @@ wheel_angles = []
 data = ""
 xs = []
 ys = []
-size_of_car = 75
+size_of_car = 100
 curve_track_opacity = True
 player_angles = []
 datatups = []
@@ -127,8 +127,7 @@ def do_crash(line, line2, i):
 		crasheds[i] += 1
 def draw_bg(op):
 	global lines
-	lines = [((pygame.display.get_window_size()[0]/6, pygame.display.get_window_size()[1]/2), ((pygame.display.get_window_size()[0]/6)*5, pygame.display.get_window_size()[1]/2)), 
-			 ((0, 0), (400, 400))]
+	lines = [((pygame.display.get_window_size()[0]/6, pygame.display.get_window_size()[1]/2), ((pygame.display.get_window_size()[0]/6)*5, pygame.display.get_window_size()[1]/2))]
 	surf = pygame.Surface(pygame.display.get_window_size())
 	surf = surf.convert_alpha()
 	surf.fill((BG_COL[0], BG_COL[1], BG_COL[2], op))
@@ -195,7 +194,7 @@ while not done:
 	#datatups = list((random.randint(-90, 90), random.randint(20, 30)) for i in range(cars)) # Random for when not using the MMU input
 	clock.tick(60)
 	for i in range(cars):
-		speeds[i] += (size_of_car/100)*(datatups[i][1]/20)
+		speeds[i] += (size_of_car/100)*(datatups[i][1]/45)
 		x_speeds[i] = (math.sin(math.radians(player_angles[i]))*speeds[i])
 		y_speeds[i] = (math.cos(math.radians(player_angles[i]))*speeds[i])
 		angles[i] = get_angle((datatups[i][0], speeds[i]))
