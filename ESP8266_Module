@@ -182,7 +182,12 @@ void setup() {
   //Wire.begin(); // This is for Wemos D1 board
   Serial.begin(115200);
   delay(500);
-  start("NetComm Wireless 3874","Dozuqehogu");
+  int connecting = 0;
+  while(connecting == 0){
+    connecting += start("NetComm Wireless 3874","Dozuqehogu");
+    connecting += start("Draenen","ranahole");
+    connecting += start("vodafoneDC98","UC9T2JLKLP");
+  }
   i2c_init();
   LSHAKE = 0;
 }
